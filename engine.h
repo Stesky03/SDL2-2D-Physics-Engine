@@ -7,18 +7,21 @@
 using std::vector;
 using std::string;
 
-#define GRAVITY 9.81
+#define PROPORTION 60
+#define GRAVITY (9.81 * PROPORTION / 60)
 #define SQ2 1.4142
 #define CIRCLESIDES 64 //64
-#define OPTIONS 4
+#define OPTIONS 3
 #define OPTIONS2 2
 #define INFOS 4
-#define UISIZE 50
 #define FLOOR 0.80 //0.80
 #define white {255,255,255}
+#define CIFRE 4
+#define MOUSEFRAMES 10
+#define COLLISIONCOOLDOWN 3
 
-#define MINDIMENSION 10.0
-#define MAXDIMENSION 500.0
+#define MINDIMENSION 6.0
+#define MAXDIMENSION 600.0
 #define MINWEIGHT 1.0 //0.1
 #define MAXWEIGHT 200.0 //20
 
@@ -37,7 +40,7 @@ public:
 class Square {
 public:
 	float weight, speedx, speedy, speedr, x, y, y1, r, lato, K, Xprec, Yprec, speedxF, speedyF;
-	bool selected;
+	bool selected, drag;
 	Coordinatesclass coordinates[4];
 	void S(float X, float Y, float s, float w) {
 		x = X;
@@ -51,7 +54,7 @@ public:
 		speedr = 0;
 		Xprec = Yprec = 0;
 		r = 0;
-		selected = false;
+		selected = drag = false;
 	};
 	void create() {
 		float r1 = 45 + r;
@@ -69,8 +72,8 @@ public:
 		x += speedx/60;
 		y += speedy/60;
 		r += speedr/60;
-		speedxF = x - Xprec;
-		speedyF = Yprec - y;
+		speedxF = (x - Xprec);
+		speedyF = (Yprec - y);
 		Xprec = x;
 		Yprec = y;
 		while (r >= 90)
@@ -86,8 +89,8 @@ public:
 //cerchi
 class Circle{
 public:
-	float radius, weight, speedx, speedy, speedr, x, y, y1, K, Xprec, Yprec, speedxF, speedyF;
-	bool selected;
+	float radius, weight, speedx, speedy, speedr, x, y, y1, K, Xprec, Yprec, speedxF, speedyF, collisionframe;
+	bool selected, drag;
 	Coordinatesclass coordinates[CIRCLESIDES];
 	void C(float X, float Y, float rad, float w) {
 		x = X;
@@ -100,7 +103,8 @@ public:
 		speedy = 0;
 		speedr = 0;
 		Xprec = Yprec = 0;
-		selected = false;
+		collisionframe = 0;
+		selected = drag = false;
 	};
 
 	void create() {
@@ -127,8 +131,8 @@ public:
 	void update() {
 		x += speedx/60;
 		y += speedy/60;
-		speedxF = x - Xprec;
-		speedyF = Yprec - y;
+		speedxF = (x - Xprec);
+		speedyF = (Yprec - y);
 		Xprec = x;
 		Yprec = y;
 		calcK();
@@ -145,7 +149,7 @@ public:
 	SDL_Rect select[OPTIONS];
 	bool selected[OPTIONS];
 
-	void start(int windowx, int windowy){
+	void start(int windowx, int windowy, int UISIZE){
 		for (int i = 0; i < OPTIONS; i++) {
 			select[i].h = select[i].w = UISIZE;
 			select[i].y = UISIZE*0.5;
@@ -173,7 +177,7 @@ public:
 	SDL_Rect select[OPTIONS2];
 	bool selected[OPTIONS2];
 
-	void start(int windowx, int windowy) {
+	void start(int windowx, int windowy, int UISIZE) {
 		for (int i = 0; i < OPTIONS2; i++) {
 			select[i].h = select[i].w = UISIZE;
 			select[i].y = UISIZE * 1.8;
@@ -207,7 +211,7 @@ public:
 
 	SDL_Texture* numberT;
 	
-	void start() {
+	void start(int UISIZE) {
 		sl.h = UISIZE;
 		sl.w = UISIZE / 2;
 		bar.h = UISIZE / 4;
@@ -243,6 +247,7 @@ public:
 	//funzionamento
 	bool Running;
 	int windowx, windowy, frame;
+	int UISIZE, textwidthX;
 
 	//rendering
 	SDL_Window* Window;
@@ -265,11 +270,13 @@ public:
 	SDL_Surface* textSurface;
 	string tempstring;
 	char tempcha[20];
-	string infotags[INFOS]{"weight", "speed - x", "speed - y", "energy"};
+	string infotags[INFOS]{"mass", "speed - x", "speed - y", "kinetic energy"};
 
 	//input
 	bool lclick, rclick;
-	int mousex, mousey, mousey1;
+	int mousex, mousey;
+	int mousexdata[MOUSEFRAMES];
+	int mouseydata[MOUSEFRAMES];
 
 	Game() {}
 	~Game() {}
@@ -316,9 +323,10 @@ public:
 	};
 	void init2() {
 		//prepara il resto
-		gFont = TTF_OpenFont("assets/FreeSans.ttf", 32);
-		ui.start(windowx, windowy);
-		uishapes.start(windowx, windowy);
+		UISIZE = windowx / 38;
+		gFont = TTF_OpenFont("assets/FreeSans.ttf", 28);
+		ui.start(windowx, windowy, UISIZE);
+		uishapes.start(windowx, windowy, UISIZE);
 		startsliders();
 		startinfo();
 		uitextures();
@@ -327,6 +335,10 @@ public:
 		Floor.x = 0;
 		Floor.y = windowy - Floor.h;
 		frame = 0;
+		for (int i = 0; i < MOUSEFRAMES; i++) {
+			mousexdata[i] = 0;
+			mouseydata[i] = 0;
+		}
 	};
 
 	void startsliders() {
@@ -334,7 +346,7 @@ public:
 
 		for (int i = 0; i < 2; i++) {
 			sliders.push_back(t);
-			sliders[i].start();
+			sliders[i].start(UISIZE);
 		}
 		sliders[0].vMin = MINDIMENSION;
 		sliders[0].vMax = MAXDIMENSION;
@@ -348,9 +360,9 @@ public:
 			sliders[i].sl.x = sliders[i].bar.x - sliders[i].sl.w / 2;
 			sliders[i].number.x = sliders[i].sl.x;
 			if (i == 1)
-				tempstring = std::to_string(float(int(sliders[i].value)) / 10);
+				tempstring = std::to_string(float(sliders[i].value) / 10);
 			else
-				tempstring = std::to_string(int(sliders[i].value));
+				tempstring = std::to_string(sliders[i].value/PROPORTION);
 			for (int j = 0; j < 10; j++) {
 				tempcha[j] = '\0';
 			}
@@ -381,6 +393,10 @@ public:
 
 			textSurface = TTF_RenderText_Solid(gFont, infofields[i].content, white);
 			infofields[i].Texture[0] = SDL_CreateTextureFromSurface(Renderer, textSurface);
+			SDL_QueryTexture(infofields[i].Texture[0], NULL, NULL, &textwidthX, NULL);
+			infofields[i].field[0].w = textwidthX;
+			textSurface = TTF_RenderText_Solid(gFont, "0\0", white);
+			infofields[i].Texture[1] = SDL_CreateTextureFromSurface(Renderer, textSurface);
 		}
 	};
 
@@ -389,10 +405,8 @@ public:
 		ui1[0] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
 		tempsurface = SDL_LoadBMP("assets/ico2.bmp");
 		ui1[1] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
-		tempsurface = SDL_LoadBMP("assets/ico3.bmp");
-		ui1[2] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
 		tempsurface = SDL_LoadBMP("assets/ico4.bmp");
-		ui1[3] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
+		ui1[2] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
 		tempsurface = SDL_LoadBMP("assets/square.bmp");
 		ui2[0] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
 		tempsurface = SDL_LoadBMP("assets/circle.bmp");
@@ -456,6 +470,8 @@ public:
 			}
 		if (ui.selected[0]) {
 			for (int i = 0; i < INFOS; i++) {
+				SDL_QueryTexture(infofields[i].Texture[1], NULL, NULL, &textwidthX, NULL);
+					infofields[i].field[1].w = textwidthX;
 				SDL_RenderCopy(Renderer, infofields[i].Texture[0], NULL, &infofields[i].field[0]);
 				SDL_RenderCopy(Renderer, infofields[i].Texture[1], NULL, &infofields[i].field[1]);
 			}
@@ -484,6 +500,8 @@ public:
 	void update() {
 		getMouseState();
 		gravity();
+		dragshapes();
+		checkcollisions();
 		checkBorders();
 		updateshapes();
 		clearcheck();
@@ -493,8 +511,14 @@ public:
 	};
 
 	void getMouseState() {
+		int t;
+		for (int i = MOUSEFRAMES - 1; i > 0; i--) {
+			mousexdata[i] = mousexdata[i - 1];
+			mouseydata[i] = mouseydata[i - 1];
+		}
+		mousexdata[0] = mousex;
+		mouseydata[0] = mousey;
 		SDL_GetMouseState(&mousex, &mousey);
-		mousey1 = mousey - windowy;
 	};
 
 	void gravity() {
@@ -505,7 +529,7 @@ public:
 				squares[i].speedy = 0;
 		}
 		for (int i = 0; i < circles.size(); i++) {
-			if (!(circles[i].coordinates[CIRCLESIDES / 4].y > Floor.y - 2 && circles[i].speedy >= 0 && circles[i].speedy < 3)) {
+			if (!(circles[i].coordinates[CIRCLESIDES / 4].y > Floor.y - 2 && circles[i].speedy >= 0 && circles[i].speedy < 3 || circles[i].drag)) {
 				circles[i].changespeed(0, GRAVITY, 0);
 			}
 			else {
@@ -547,7 +571,7 @@ public:
 	};
 
 	void clearcheck() {
-		if (ui.selected[3]) {
+		if (ui.selected[2]) {
 			squares.clear();
 			circles.clear();
 			ui.selection(-1);
@@ -565,12 +589,13 @@ public:
 					sliders[i].sl.x = sliders[i].bar.x - sliders[i].sl.w / 2;
 				else
 					sliders[i].sl.x = sliders[i].bar.x + sliders[i].bar.w - sliders[i].sl.w / 2;
-				sliders[i].value = (sliders[i].sl.x - (sliders[i].bar.x - sliders[i].sl.w / 2)) * ((sliders[i].vMax - sliders[i].vMin) / (sliders[i].bar.w + sliders[i].sl.w)) + sliders[i].vMin;
+				
+				sliders[i].value = (sliders[i].sl.x - (sliders[i].bar.x - sliders[i].sl.w / 2)) * ((sliders[i].vMax - sliders[i].vMin) / sliders[i].bar.w) + sliders[i].vMin;
 				sliders[i].number.x = sliders[i].sl.x;
 				if(i==1)
 					tempstring = std::to_string(float(int(sliders[i].value))/10);
 				else
-					tempstring = std::to_string(int(sliders[i].value));
+					tempstring = std::to_string(sliders[i].value/PROPORTION);
 				for (int j = 0; j < 10; j++) {
 					tempcha[j] = '\0';
 				}
@@ -594,30 +619,32 @@ public:
 			for (int i = 0; i < squares.size(); i++) {
 				if (squares[i].selected) {
 					if (sliders[0].selected) {
+						squares[i].changeweight(squares[i].weight / pow(squares[i].lato/PROPORTION, 3) * pow(sliders[0].value/PROPORTION, 3));
 						squares[i].resize(sliders[0].value);
 					}
 					else if (sliders[1].selected) {
-						squares[i].changeweight(sliders[1].value / 10 * pow(squares[i].lato * 10, 3));
+						squares[i].changeweight(sliders[1].value / 10 * pow(squares[i].lato / PROPORTION, 3));
 					}
 					for(int j=0;j<4;j++)
-						if (frame % 4 == j)//l'aggiornamento del testo è troppo pesante per svolgerlo ogni frame
-							produceinfotext(i, j, true);
+						produceinfotext(i, j, true);
 				}
 			}
 			for (int i = 0; i < circles.size(); i++) {
 				if (circles[i].selected) {
 					if (sliders[0].selected) {
+						circles[i].changeweight(circles[i].weight / pow(circles[i].radius/PROPORTION, 3) * pow(sliders[0].value/2/PROPORTION, 3));
 						circles[i].resize(sliders[0].value / 2);
 					}
 					else if (sliders[1].selected) {
-						circles[i].changeweight(sliders[1].value / 10 * pow(circles[i].radius * 10, 3) * 4 / 3 * M_PI);
+						circles[i].changeweight(sliders[1].value / 10 * pow(circles[i].radius / PROPORTION, 3) * 4 / 3 * M_PI);
 					}
 					for (int j = 0; j < 4; j++)
-							produceinfotext(i, j, false);
+						produceinfotext(i, j, false);
 				}
 			}
 		}
 	};
+
 	void produceinfotext(int i, int j, bool rect) {
 		if (j == 0) {
 			if (rect)
@@ -649,9 +676,115 @@ public:
 		}
 		for (int j = 0; j < tempstring.size(); j++)
 			tempcha[j] = tempstring[j];
-		tempcha[tempstring.size()] = '\0';
-		textSurface = TTF_RenderText_Solid(gFont, tempcha, { 255,255,255 });
+		for (int j = 0; j < tempstring.size(); j++)
+			if (tempcha[j] == '.')
+				tempcha[j + CIFRE + 1] = '\0';
+		textSurface = TTF_RenderText_Solid(gFont, tempcha, white);
 		infofields[j].Texture[1] = SDL_CreateTextureFromSurface(Renderer, textSurface);
+	};
+
+	void dragshapes() {
+		int x, y;
+		//squares
+		for (int i = 0; i < circles.size(); i++) {
+			if (!circles[i].drag)
+				continue;
+			if (!lclick) {
+				x = 0;
+				y = 0;
+				for (int i = 0; i < MOUSEFRAMES; i++) {
+					x += mousexdata[i];
+					y += mouseydata[i];
+				}
+				x /= MOUSEFRAMES;
+				y /= MOUSEFRAMES;
+				circles[i].changespeed((mousex - x)*4, (mousey - y)*4, 0);
+				circles[i].drag = false;
+			}
+			else {
+				circles[i].speedx = circles[i].speedy = 0;
+				circles[i].move(mousex - mousexdata[0], mousey - mouseydata[0]);
+			}
+
+		}
+	};
+
+	void checkcollisions() {
+		checkCC();
+	};
+
+	void checkCC() {
+		float x1, x2;
+		float y1, y2;
+		float v1x, v2x;
+		float v1y, v2y;
+		float m1, m2;
+		float d, dx, dy;
+		float ux, uy;
+		float v1c, v2c;
+		float v1p, v2p;
+		float v1c1, v2c1;
+		float overlap;
+
+		for (int i = 0; i < circles.size(); i++) {
+			for (int j = i + 1; j < circles.size(); j++) {
+				if (circles[i].collisionframe + circles[j].collisionframe + 2 * COLLISIONCOOLDOWN < 2 * frame){
+						x1 = circles[i].x;
+						y1 = circles[i].y;
+						x2 = circles[j].x;
+						y2 = circles[j].y;
+
+					if (sqrt(pow(circles[i].y - circles[j].y, 2) + pow(circles[i].x - circles[j].x, 2)) < circles[i].radius + circles[j].radius) {
+						
+						v1x = circles[i].speedx;
+						v1y = circles[i].speedy;
+						m1 = circles[i].weight;
+
+						v2x = circles[j].speedx;
+						v2y = circles[j].speedy;
+						m2 = circles[j].weight;
+
+						// distanza tra i cerchi
+						dx = x2 - x1;
+						dy = y2 - y1;
+						d = sqrt(dx * dx + dy * dy);
+
+						// unit vector
+						ux = dx / d;
+						uy = dy / d;
+
+						// componenti della velocità lungo l'asse di collisione
+						v1c = v1x * ux + v1y * uy;
+						v2c = v2x * ux + v2y * uy;
+
+						// componenti della velocità perpendicolari all'asse di collisione
+						v1p = v1x * uy - v1y * ux;
+						v2p = v2x * uy - v2y * ux;
+
+						// conservazione della quantità di moto lungo l'asse di collisione
+						v1c1 = ((m1 - m2) * v1c + 2 * m2 * v2c) / (m1 + m2);
+						v2c1 = ((m2 - m1) * v2c + 2 * m1 * v1c) / (m1 + m2);
+
+						circles[i].speedx = v1c1 * ux + v1p * uy;
+						circles[i].speedy = v1c1 * uy - v1p * ux;
+						circles[j].speedx = v2c1 * ux + v2p * uy;
+						circles[j].speedy = v2c1 * uy - v2p * ux;
+
+						circles[i].collisionframe = circles[j].collisionframe = frame;
+
+					}
+					overlap = circles[i].radius + circles[j].radius - sqrt(pow(circles[i].y - circles[j].y, 2) + pow(circles[i].x - circles[j].x, 2));
+					if (overlap > 0) {
+						float adjustx = overlap / 2 * (x1 - x2) / sqrt(pow(circles[i].y - circles[j].y, 2) + pow(circles[i].x - circles[j].x, 2));
+						float adjusty = overlap / 2 * (y1 - y2) / sqrt(pow(circles[i].y - circles[j].y, 2) + pow(circles[i].x - circles[j].x, 2));
+						circles[i].x += adjustx;
+						circles[i].y += adjusty;
+						circles[j].x -= adjustx;
+						circles[j].y -= adjusty;
+					}
+				}
+			}
+		}
 	};
 	
 	void handleEvents() {
@@ -704,11 +837,13 @@ public:
 	void LClickChecks() {
 		if (sel() && slidercheck() && ui.selected[1])
 			newshape();
-		else if (ui.selected[0]) {
-			selectshape();
-		}
-		else if (ui.selected[0] || ui.selected[1]) {
-			slidercheck();
+		else {
+			if (ui.selected[0] || ui.selected[1]) {
+				slidercheck();
+			}
+			if (!ui.selected[1]) {
+				selectshape();
+			}
 		}
 	};
 
@@ -733,12 +868,12 @@ public:
 	void newshape() {
 		if (uishapes.selected[0]) {
 			Square t;
-			t.S(mousex, mousey, sliders[0].value, sliders[1].value / 10 * pow(sliders[0].value * 10, 3));//va cambiato
+			t.S(mousex, mousey, sliders[0].value, sliders[1].value / 10 * pow(sliders[0].value / PROPORTION, 3));
 			squares.push_back(t);
 		}
 		else if (uishapes.selected[1]) {
 			Circle t;	
-			t.C(mousex, mousey, sliders[0].value / 2, sliders[1].value / 10 * pow(sliders[0].value * 5, 3) * 4 / 3 * M_PI);
+			t.C(mousex, mousey, sliders[0].value / 2, sliders[1].value / 10 * pow((sliders[0].value/2) / PROPORTION, 3) * 4 / 3 * M_PI);
 			circles.push_back(t);
 		}
 	};
@@ -769,7 +904,6 @@ public:
 				}
 			}
 			if (t == 2) {
-				ui.selected[2] = true;
 				for (int j = 0; j < squares.size(); j++) {
 					squares[j].selected = false;
 				}
@@ -777,9 +911,9 @@ public:
 					circles[j].selected = false;
 				}
 				squares[i].selected = true;
+				squares[i].drag = true;
 				return;
 			}
-			else { ui.selected[2] = false; }
 		}
 		for (int i = 0; i < circles.size(); i++) {
 			if (sqrt(pow(mousex - circles[i].x, 2) + pow(mousey - circles[i].y, 2)) < circles[i].radius) {
@@ -790,6 +924,7 @@ public:
 					circles[j].selected = false;
 				}
 				circles[i].selected = true;
+				circles[i].drag = true;
 				return;
 			}
 		}
