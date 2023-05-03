@@ -11,7 +11,7 @@ using std::string;
 #define GRAVITY (9.81 * PROPORTION / 60)
 #define SQ2 1.4142
 #define CIRCLESIDES 64 //64
-#define OPTIONS 3
+#define OPTIONS 6
 #define OPTIONS2 2
 #define INFOS 4
 #define FLOOR 0.80 //0.80
@@ -25,8 +25,7 @@ using std::string;
 #define MINWEIGHT 1.0 //0.1
 #define MAXWEIGHT 200.0 //20
 
-//l'asse y è invertito di default e di conseguenza la rotazione è in senso orario
-//la gpu viene utilizzata solo per le texture
+//l'asse y e' invertito di default e di conseguenza la rotazione e' in senso orario
 
 double cotan(double x) {
 	return (cos(x) / sin(x));
@@ -144,60 +143,12 @@ public:
 };
 
 //tasti su schermo
-class UI {
+class Tasto {
 public:
-	SDL_Rect select[OPTIONS];
-	bool selected[OPTIONS];
-
-	void start(int windowx, int windowy, int UISIZE){
-		for (int i = 0; i < OPTIONS; i++) {
-			select[i].h = select[i].w = UISIZE;
-			select[i].y = UISIZE*0.5;
-			if (i == 0) {
-				select[i].x = windowx - UISIZE*1.5;
-			}
-			else
-				select[i].x = select[i - 1].x - UISIZE*1.3;
-		}
-	};
-	void selection(int j){
-		if (selected[j]) {
-			selected[j] = false;
-			return;
-		}
-		for (int i = 0; i < OPTIONS; i++) 
-			selected[i] = false;
-		if (j >= 0 && j < OPTIONS)
-			selected[j] = true;
-	};
-};
-
-class UIshapes {
-public:
-	SDL_Rect select[OPTIONS2];
-	bool selected[OPTIONS2];
-
-	void start(int windowx, int windowy, int UISIZE) {
-		for (int i = 0; i < OPTIONS2; i++) {
-			select[i].h = select[i].w = UISIZE;
-			select[i].y = UISIZE * 1.8;
-			if (i == 0) {
-				select[i].x = windowx - UISIZE * 1.5;
-			}
-			else
-				select[i].x = select[i - 1].x - UISIZE * 1.3;
-		}
-	};
-	void selection(int j) {
-		if (selected[j]) {
-			selected[j] = false;
-			return;
-		}
-		for (int i = 0; i < OPTIONS2; i++)
-			selected[i] = false;
-		if (j >= 0 && j < OPTIONS2)
-			selected[j] = true;
-	};
+	SDL_Rect button;
+	string tag;
+	bool exclusive;
+	bool selected;
 };
 
 class Slider
@@ -257,8 +208,9 @@ public:
 	vector <Square> squares;
 	vector <Circle> circles;
 	SDL_Rect Floor;
-	UI ui;
-	UIshapes uishapes;
+	SDL_Rect walls[3];
+	vector <Tasto> ui;
+	vector <Tasto> uishapes;
 	vector <Slider> sliders;
 	vector <Info> infofields;
 
@@ -271,6 +223,7 @@ public:
 	string tempstring;
 	char tempcha[20];
 	string infotags[INFOS]{"mass", "speed - x", "speed - y", "kinetic energy"};
+	string uitags[OPTIONS]{ "settings", "sliders", "new", "gravity", "walls", "trash" };
 
 	//input
 	bool lclick, rclick;
@@ -321,23 +274,48 @@ public:
 		init2();
 		return true;
 	};
+
 	void init2() {
 		//prepara il resto
-		UISIZE = windowx / 38;
-		gFont = TTF_OpenFont("assets/FreeSans.ttf", 28);
-		ui.start(windowx, windowy, UISIZE);
-		uishapes.start(windowx, windowy, UISIZE);
-		startsliders();
-		startinfo();
-		uitextures();
-		Floor.h = 20;
-		Floor.w = windowx;
-		Floor.x = 0;
-		Floor.y = windowy - Floor.h;
+		startui();
 		frame = 0;
 		for (int i = 0; i < MOUSEFRAMES; i++) {
 			mousexdata[i] = 0;
 			mouseydata[i] = 0;
+		}
+	};
+
+	void startui() {
+		UISIZE = windowx / 38;
+		gFont = TTF_OpenFont("assets/FreeSans.ttf", 28);
+		startbuttons();
+		startsliders();
+		startinfo();
+		uitextures();
+		startfloorandwalls();
+	};
+
+	void startbuttons() {
+		Tasto t;
+		t.button.x = windowx - UISIZE * 1.5;;
+		t.button.y = UISIZE * 0.5;
+		t.button.w = t.button.h = UISIZE;
+		t.selected = false;
+		t.exclusive = true;
+		for (int i = 0; i < OPTIONS; i++) {
+			if (i > 0)
+				t.button.x -= UISIZE * 1.3;
+			t.tag = uitags[i];
+			if (t.tag == "walls" || t.tag == "gravity")
+				t.exclusive = false;
+			ui.push_back(t);
+		}
+		t.button.y = UISIZE * 1.8;
+		t.button.x = windowx - UISIZE * 1.5;;
+		for (int i = 0; i < OPTIONS; i++) {
+			if (i > 0)
+				t.button.x -= UISIZE * 1.3;
+			uishapes.push_back(t);
 		}
 	};
 
@@ -401,17 +379,37 @@ public:
 	};
 
 	void uitextures() {
-		tempsurface = SDL_LoadBMP("assets/ico1.bmp");
-		ui1[0] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
-		tempsurface = SDL_LoadBMP("assets/ico2.bmp");
+		tempsurface = SDL_LoadBMP("assets/settings.bmp");
+		ui1[0]= SDL_CreateTextureFromSurface(Renderer, tempsurface);
+		tempsurface = SDL_LoadBMP("assets/sliders.bmp");
 		ui1[1] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
-		tempsurface = SDL_LoadBMP("assets/ico4.bmp");
+		tempsurface = SDL_LoadBMP("assets/new.bmp");
 		ui1[2] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
+		tempsurface = SDL_LoadBMP("assets/gravity.bmp");
+		ui1[3] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
+		tempsurface = SDL_LoadBMP("assets/walls.bmp");
+		ui1[4] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
+		tempsurface = SDL_LoadBMP("assets/trash.bmp");
+		ui1[5] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
 		tempsurface = SDL_LoadBMP("assets/square.bmp");
 		ui2[0] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
 		tempsurface = SDL_LoadBMP("assets/circle.bmp");
 		ui2[1] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
 		SDL_FreeSurface(tempsurface);
+	};
+
+	void startfloorandwalls() {
+		Floor.h = 20;
+		Floor.w = windowx;
+		Floor.x = 0;
+		Floor.y = windowy - Floor.h;
+
+		walls[0].y = walls[1].y = walls[2].y = 0;
+		walls[0].x = windowx - 5;
+		walls[1].x = walls[2].x = 0;
+		walls[0].w = walls[1].h = walls[2].w = 5;
+		walls[0].h = walls[2].h = windowy;
+		walls[1].w = windowx;
 	};
 
 	void render() {
@@ -423,22 +421,22 @@ public:
 		SDL_RenderPresent(Renderer);
 	};
 
-	void renderui() {//far cambiare colore al renderer richiede un'enormità di tempo, perciò il rendering è diviso per colore
+	void renderui() {//far cambiare colore al renderer richiede un'enormita' di tempo, percio' il rendering e' diviso per colore
 		renderuiunselected();
 		renderuiselected();
 		rendertextures();
 	};
 
 	void renderuiunselected() {
-		SDL_SetRenderDrawColor(Renderer, 140, 140, 140, 255);
+		SDL_SetRenderDrawColor(Renderer, 150, 150, 150, 255);
 		for (int i = 0; i < OPTIONS; i++)
-			if (!ui.selected[i])
-				SDL_RenderFillRect(Renderer, &ui.select[i]);
-		if (ui.selected[1])
+			if (!ui[i].selected)
+				SDL_RenderFillRect(Renderer, &ui[i].button);
+		if (ui[2].selected)
 			for (int i = 0; i < OPTIONS2; i++)
-				if (!uishapes.selected[i])
-					SDL_RenderFillRect(Renderer, &uishapes.select[i]);
-		if (ui.selected[0] || ui.selected[1])
+				if (!uishapes[i].selected)
+					SDL_RenderFillRect(Renderer, &uishapes[i].button);
+		if (ui[1].selected || ui[2].selected)
 			for (int i = 0; i < sliders.size(); i++) {
 				SDL_RenderFillRect(Renderer, &sliders[i].bar);
 			}
@@ -447,20 +445,20 @@ public:
 	void renderuiselected() {
 		SDL_SetRenderDrawColor(Renderer, 80, 80, 80, 255);
 		for (int i = 0; i < OPTIONS; i++)
-			if (ui.selected[i])
-				SDL_RenderFillRect(Renderer, &ui.select[i]);
-		if (ui.selected[1])
+			if (ui[i].selected)
+				SDL_RenderFillRect(Renderer, &ui[i].button);
+		if (ui[2].selected)
 			for (int i = 0; i < OPTIONS2; i++)
-				if (uishapes.selected[i])
-					SDL_RenderFillRect(Renderer, &uishapes.select[i]);
+				if (uishapes[i].selected)
+					SDL_RenderFillRect(Renderer, &uishapes[i].button);
 	};
 
 	void rendertextures() {
 		for (int i = 0; i < OPTIONS; i++)
-			SDL_RenderCopy(Renderer, ui1[i], NULL, &ui.select[i]);
+			SDL_RenderCopy(Renderer, ui1[i], NULL, &ui[i].button);
 		for (int i = 0; i < OPTIONS2; i++)
-			SDL_RenderCopy(Renderer, ui2[i], NULL, &uishapes.select[i]);
-		if (ui.selected[0] || ui.selected[1])
+			SDL_RenderCopy(Renderer, ui2[i], NULL, &uishapes[i].button);
+		if (ui[1].selected || ui[2].selected)
 			for (int i = 0; i < sliders.size(); i++) {
 				if(sliders[i].selected)
 					SDL_RenderCopy(Renderer, slidertriangle[1], NULL, &sliders[i].sl);
@@ -468,7 +466,7 @@ public:
 					SDL_RenderCopy(Renderer, slidertriangle[0], NULL, &sliders[i].sl);
 				SDL_RenderCopy(Renderer, sliders[i].numberT, NULL, &sliders[i].number);
 			}
-		if (ui.selected[0]) {
+		if (ui[1].selected) {
 			for (int i = 0; i < INFOS; i++) {
 				SDL_QueryTexture(infofields[i].Texture[1], NULL, NULL, &textwidthX, NULL);
 					infofields[i].field[1].w = textwidthX;
@@ -481,10 +479,19 @@ public:
 	void rendershapes() {
 		SDL_SetRenderDrawColor(Renderer, 255, 255, 255, 255);
 		SDL_RenderFillRect(Renderer, &Floor);
+		renderwalls();
 		rendersquares();
 		rendercircles();
 	};
 	
+	void renderwalls() {
+		for (int i = 0; i < OPTIONS; i++) {
+			if(ui[i].selected)
+				if(ui[i].tag=="walls")
+					SDL_RenderFillRects(Renderer, walls, 3);
+		}
+	};
+
 	void rendersquares() {
 		for (int i = 0; i < squares.size(); i++)
 			for (int j = 0; j < 4; j++) 
@@ -500,13 +507,13 @@ public:
 	void update() {
 		getMouseState();
 		gravity();
-		dragshapes();
-		checkcollisions();
 		checkBorders();
 		updateshapes();
 		clearcheck();
 		sliderupdate();
 		info();
+		dragshapes();
+		checkcollisions();
 		frame++;
 	};
 
@@ -522,6 +529,11 @@ public:
 	};
 
 	void gravity() {
+		for (int i = 0; i < OPTIONS; i++) {
+			if (ui[i].tag == "gravity")
+				if (ui[i].selected)
+					return;
+		}
 		for (int i = 0; i < squares.size(); i++) {
 			if (!(squares[i].coordinates[0].y > Floor.y - 2 && squares[i].speedy >= 0 && squares[i].speedy < 3))//questo if() serve a non far rimbalzare oggetti che sono fermi a terra
 				squares[i].changespeed(0, GRAVITY, 0);
@@ -540,18 +552,55 @@ public:
 	};
 
 	void checkBorders() {
-		for (int i = 0; i < squares.size(); i++) {//l'angolo [0] è sempre il più basso
+		bool t;
+		for (int i = 0; i < OPTIONS; i++)
+			if (ui[i].selected)
+				if (ui[i].tag == "walls")
+					t = true;
+				else
+					t = false;
+
+		for (int i = 0; i < squares.size(); i++) {//l'angolo [0] Ã¨ sempre il piÃ¹ basso
 			if (squares[i].coordinates[0].y > Floor.y - 1 && squares[i].speedy >= 0) {
 				squares[i].move(0, (Floor.y - 1) - squares[i].coordinates[0].y, 0);
 				squares[i].changespeed(0, -squares[i].speedy * FLOOR * 2, 0);
 			}
+			if (t) {
+				if (squares[i].coordinates[2].y < walls[1].h + 1 && squares[i].speedy <= 0) {
+					squares[i].move(0, (walls[1].h + 1) - squares[i].coordinates[2].y, 0);
+					squares[i].changespeed(0, -squares[i].speedy * FLOOR * 2, 0);
+				}
+				if (squares[i].coordinates[3].x > walls[0].x - 1 && squares[i].speedx >= 0) {
+					squares[i].move(0, (walls[0].x - 1) - squares[i].coordinates[3].x, 0);
+					squares[i].changespeed(-squares[i].speedx * FLOOR * 2, 0, 0);
+				}
+				if (squares[i].coordinates[1].x < walls[2].w + 1 && squares[i].speedx <= 0) {
+					squares[i].move(0, (walls[2].w + 1) - squares[i].coordinates[1].x, 0);
+					squares[i].changespeed(-squares[i].speedx * FLOOR * 2, 0, 0);
+				}
+			}
 		}
-		for (int i = 0; i < circles.size(); i++) {//(CIRCLESIDES / 4) è sempre il punto più in basso del cerchio
+		for (int i = 0; i < circles.size(); i++) {//(CIRCLESIDES / 4) Ã¨ sempre il punto piï¿½ in basso del cerchio
 			if (circles[i].coordinates[CIRCLESIDES / 4].y > Floor.y - 1 && circles[i].speedy >= 0) {
 				circles[i].move(0, (Floor.y - 1) - circles[i].coordinates[CIRCLESIDES / 4].y);
 				circles[i].changespeed(0, -circles[i].speedy * FLOOR * 2, 0);
 			}
+			if (t) {
+				if (circles[i].coordinates[CIRCLESIDES * 3 / 4].y < walls[1].h + 1 && circles[i].speedy <= 0) {
+					circles[i].move(0, (walls[1].h + 1) - circles[i].coordinates[CIRCLESIDES * 3 / 4].y);
+					circles[i].changespeed(0, -circles[i].speedy * FLOOR * 2, 0);
+				}
+				if (circles[i].coordinates[0].x > walls[0].x - 1 && circles[i].speedx >= 0) {
+					circles[i].move(0, ((walls[0].x - 1)) - circles[i].coordinates[0].x);
+					circles[i].changespeed(-circles[i].speedx * FLOOR * 2, 0, 0);
+				}
+				if (circles[i].coordinates[CIRCLESIDES / 2].x < walls[2].w + 1 && circles[i].speedx <= 0) {
+					circles[i].move(0, (walls[2].w + 1) - circles[i].coordinates[CIRCLESIDES / 2].x);
+					circles[i].changespeed(-circles[i].speedx * FLOOR * 2, 0, 0);
+				}
+			}
 		}
+
 
 	};
 
@@ -571,12 +620,12 @@ public:
 	};
 
 	void clearcheck() {
-		if (ui.selected[2]) {
-			squares.clear();
-			circles.clear();
-			ui.selection(-1);
-			uishapes.selection(-1);
-		}
+		for(int i=0;i<OPTIONS;i++)
+			if (ui[i].tag == "trash" && ui[i].selected) {
+				squares.clear();
+				circles.clear();
+				selection(-1,0);
+			}
 	};
 
 	void sliderupdate() {
@@ -615,7 +664,7 @@ public:
 	};
 
 	void info() {
-		if (ui.selected[0]) {
+		if (ui[1].selected) {
 			for (int i = 0; i < squares.size(); i++) {
 				if (squares[i].selected) {
 					if (sliders[0].selected) {
@@ -698,7 +747,7 @@ public:
 				}
 				x /= MOUSEFRAMES;
 				y /= MOUSEFRAMES;
-				circles[i].changespeed((mousex - x)*4, (mousey - y)*4, 0);
+				circles[i].changespeed((mousex - x)*12, (mousey - y)*12, 0);
 				circles[i].drag = false;
 			}
 			else {
@@ -753,15 +802,15 @@ public:
 						ux = dx / d;
 						uy = dy / d;
 
-						// componenti della velocità lungo l'asse di collisione
+						// componenti della velocita' lungo l'asse di collisione
 						v1c = v1x * ux + v1y * uy;
 						v2c = v2x * ux + v2y * uy;
 
-						// componenti della velocità perpendicolari all'asse di collisione
+						// componenti della velocita' perpendicolari all'asse di collisione
 						v1p = v1x * uy - v1y * ux;
 						v2p = v2x * uy - v2y * ux;
 
-						// conservazione della quantità di moto lungo l'asse di collisione
+						// conservazione della quantita' di moto lungo l'asse di collisione
 						v1c1 = ((m1 - m2) * v1c + 2 * m2 * v2c) / (m1 + m2);
 						v2c1 = ((m2 - m1) * v2c + 2 * m1 * v1c) / (m1 + m2);
 
@@ -835,43 +884,81 @@ public:
 	};
 
 	void LClickChecks() {
-		if (sel() && slidercheck() && ui.selected[1])
+		if (sel() && slidercheck() && ui[2].selected)
 			newshape();
 		else {
-			if (ui.selected[0] || ui.selected[1]) {
+			if (ui[1].selected || ui[2].selected) {
 				slidercheck();
 			}
-			if (!ui.selected[1]) {
+			if (!ui[2].selected) {
 				selectshape();
 			}
 		}
 	};
 
 	bool sel() {
-		if (mousey >= ui.select[0].y && mousey <= ui.select[0].y + UISIZE)
+		if (mousey >= ui[0].button.y && mousey <= ui[0].button.y + UISIZE)
 			for (int i = 0; i < OPTIONS; i++)
-				if (mousex >= ui.select[i].x && mousex <= ui.select[i].x + UISIZE) {
-					ui.selection(i);
+				if (mousex >= ui[i].button.x && mousex <= ui[i].button.x + UISIZE) {
+					selection(0,i);
 					return false;
 				}
-		if (ui.selected[1]) {
-			if (mousey >= uishapes.select[0].y && mousey <= uishapes.select[0].y + UISIZE)
+		if (ui[2].selected) {
+			if (mousey >= uishapes[0].button.y && mousey <= uishapes[0].button.y + UISIZE)
 				for (int i = 0; i < OPTIONS2; i++)
-					if (mousex >= uishapes.select[i].x && mousex <= uishapes.select[i].x + UISIZE) {
-						uishapes.selection(i);
+					if (mousex >= uishapes[i].button.x && mousex <= uishapes[i].button.x + UISIZE) {
+						selection(1,i);
 						return false;
 					}
 		}
 		return true;
 	};
+	void selection(int a, int b) {
+		if (a == -1) {
+			for (int i = 0; i < OPTIONS; i++)
+				ui[i].selected = false;
+			for (int i = 0; i < OPTIONS2; i++)
+				uishapes[i].selected = false;
+		}
+
+		if (a == 0) {
+			if (ui[b].selected) { // se Ã¨ selezionato si deseleziona
+				ui[b].selected = false;
+				return;
+			}
+			if (!ui[b].exclusive) {// se Ã¨ standalone si seleziona
+				ui[b].selected = true;
+				return;
+			}
+			for (int i = 0; i < OPTIONS; i++) { //se Ã¨ selezionato e non Ã¨ standalone si deseleziona
+				if (ui[i].exclusive) {
+					ui[i].selected = false;
+				}
+			}//si seleziona quello giusto
+			ui[b].selected = true;
+			return;
+		}
+
+		if (a == 1) {
+			if (uishapes[b].selected) {
+				uishapes[b].selected = false;
+				return;
+			}
+			for (int i = 0; i < OPTIONS2; i++)
+				uishapes[i].selected = false;
+			uishapes[b].selected = true;
+			return;
+		}
+
+	};
 
 	void newshape() {
-		if (uishapes.selected[0]) {
+		if (uishapes[0].selected) {
 			Square t;
 			t.S(mousex, mousey, sliders[0].value, sliders[1].value / 10 * pow(sliders[0].value / PROPORTION, 3));
 			squares.push_back(t);
 		}
-		else if (uishapes.selected[1]) {
+		else if (uishapes[1].selected) {
 			Circle t;	
 			t.C(mousex, mousey, sliders[0].value / 2, sliders[1].value / 10 * pow((sliders[0].value/2) / PROPORTION, 3) * 4 / 3 * M_PI);
 			circles.push_back(t);
