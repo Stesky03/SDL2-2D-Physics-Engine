@@ -207,7 +207,7 @@ public:
 	//cose
 	vector <Square> squares;
 	vector <Circle> circles;
-	SDL_Rect RESTITUTION;
+	SDL_Rect Floor;
 	SDL_Rect walls[3];
 	vector <Tasto> ui;
 	vector <Tasto> uishapes;
@@ -292,7 +292,7 @@ public:
 		startsliders();
 		startinfo();
 		uitextures();
-		startRESTITUTIONandwalls();
+		startfloorandwalls();
 	};
 
 	void startbuttons() {
@@ -398,11 +398,11 @@ public:
 		SDL_FreeSurface(tempsurface);
 	};
 
-	void startRESTITUTIONandwalls() {
-		RESTITUTION.h = 20;
-		RESTITUTION.w = windowx;
-		RESTITUTION.x = 0;
-		RESTITUTION.y = windowy - RESTITUTION.h;
+	void startfloorandwalls() {
+		Floor.h = 20;
+		Floor.w = windowx;
+		Floor.x = 0;
+		Floor.y = windowy - Floor.h;
 
 		walls[0].y = walls[1].y = walls[2].y = 0;
 		walls[0].x = windowx - 5;
@@ -478,7 +478,7 @@ public:
 
 	void rendershapes() {
 		SDL_SetRenderDrawColor(Renderer, 255, 255, 255, 255);
-		SDL_RenderFillRect(Renderer, &RESTITUTION);
+		SDL_RenderFillRect(Renderer, &Floor);
 		renderwalls();
 		rendersquares();
 		rendercircles();
@@ -535,13 +535,13 @@ public:
 					return;
 		}
 		for (int i = 0; i < squares.size(); i++) {
-			if (!(squares[i].coordinates[0].y > RESTITUTION.y - 2 && squares[i].speedy >= 0 && squares[i].speedy < 3))//questo if() serve a non far rimbalzare oggetti che sono fermi a terra
+			if (!(squares[i].coordinates[0].y > Floor.y - 2 && squares[i].speedy >= 0 && squares[i].speedy < 3))//questo if() serve a non far rimbalzare oggetti che sono fermi a terra
 				squares[i].changespeed(0, GRAVITY, 0);
 			else
 				squares[i].speedy = 0;
 		}
 		for (int i = 0; i < circles.size(); i++) {
-			if (!(circles[i].coordinates[CIRCLESIDES / 4].y > RESTITUTION.y - 2 && circles[i].speedy >= 0 && circles[i].speedy < 3 || circles[i].drag)) {
+			if (!(circles[i].coordinates[CIRCLESIDES / 4].y > Floor.y - 2 && circles[i].speedy >= 0 && circles[i].speedy < 3 || circles[i].drag)) {
 				circles[i].changespeed(0, GRAVITY, 0);
 			}
 			else {
@@ -561,8 +561,8 @@ public:
 					t = false;
 
 		for (int i = 0; i < squares.size(); i++) {//l'angolo [0] è sempre il più basso
-			if (squares[i].coordinates[0].y > RESTITUTION.y - 1 && squares[i].speedy >= 0) {
-				squares[i].move(0, (RESTITUTION.y - 1) - squares[i].coordinates[0].y, 0);
+			if (squares[i].coordinates[0].y > Floor.y - 1 && squares[i].speedy >= 0) {
+				squares[i].move(0, (Floor.y - 1) - squares[i].coordinates[0].y, 0);
 				squares[i].changespeed(0, -squares[i].speedy * RESTITUTION * 2, 0);
 			}
 			if (t) {
@@ -581,8 +581,8 @@ public:
 			}
 		}
 		for (int i = 0; i < circles.size(); i++) {//(CIRCLESIDES / 4) è sempre il punto pi� in basso del cerchio
-			if (circles[i].coordinates[CIRCLESIDES / 4].y > RESTITUTION.y - 1 && circles[i].speedy >= 0) {
-				circles[i].move(0, (RESTITUTION.y - 1) - circles[i].coordinates[CIRCLESIDES / 4].y);
+			if (circles[i].coordinates[CIRCLESIDES / 4].y > Floor.y - 1 && circles[i].speedy >= 0) {
+				circles[i].move(0, (Floor.y - 1) - circles[i].coordinates[CIRCLESIDES / 4].y);
 				circles[i].changespeed(0, -circles[i].speedy * RESTITUTION * 2, 0);
 			}
 			if (t) {
@@ -884,6 +884,8 @@ public:
 	};
 
 	void LClickChecks() {
+		if (selectshape())
+			return;
 		if (sel() && slidercheck() && ui[2].selected && !selectshape())
 			newshape();
 		else {
