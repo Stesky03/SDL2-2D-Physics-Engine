@@ -14,7 +14,7 @@ using std::string;
 #define OPTIONS 6
 #define OPTIONS2 2
 #define INFOS 4
-#define FLOOR 0.80 //0.80
+#define RESTITUTION 0.80 //0.80
 #define white {255,255,255}
 #define CIFRE 4
 #define MOUSEFRAMES 10
@@ -207,7 +207,7 @@ public:
 	//cose
 	vector <Square> squares;
 	vector <Circle> circles;
-	SDL_Rect Floor;
+	SDL_Rect RESTITUTION;
 	SDL_Rect walls[3];
 	vector <Tasto> ui;
 	vector <Tasto> uishapes;
@@ -292,7 +292,7 @@ public:
 		startsliders();
 		startinfo();
 		uitextures();
-		startfloorandwalls();
+		startRESTITUTIONandwalls();
 	};
 
 	void startbuttons() {
@@ -398,11 +398,11 @@ public:
 		SDL_FreeSurface(tempsurface);
 	};
 
-	void startfloorandwalls() {
-		Floor.h = 20;
-		Floor.w = windowx;
-		Floor.x = 0;
-		Floor.y = windowy - Floor.h;
+	void startRESTITUTIONandwalls() {
+		RESTITUTION.h = 20;
+		RESTITUTION.w = windowx;
+		RESTITUTION.x = 0;
+		RESTITUTION.y = windowy - RESTITUTION.h;
 
 		walls[0].y = walls[1].y = walls[2].y = 0;
 		walls[0].x = windowx - 5;
@@ -478,7 +478,7 @@ public:
 
 	void rendershapes() {
 		SDL_SetRenderDrawColor(Renderer, 255, 255, 255, 255);
-		SDL_RenderFillRect(Renderer, &Floor);
+		SDL_RenderFillRect(Renderer, &RESTITUTION);
 		renderwalls();
 		rendersquares();
 		rendercircles();
@@ -535,13 +535,13 @@ public:
 					return;
 		}
 		for (int i = 0; i < squares.size(); i++) {
-			if (!(squares[i].coordinates[0].y > Floor.y - 2 && squares[i].speedy >= 0 && squares[i].speedy < 3))//questo if() serve a non far rimbalzare oggetti che sono fermi a terra
+			if (!(squares[i].coordinates[0].y > RESTITUTION.y - 2 && squares[i].speedy >= 0 && squares[i].speedy < 3))//questo if() serve a non far rimbalzare oggetti che sono fermi a terra
 				squares[i].changespeed(0, GRAVITY, 0);
 			else
 				squares[i].speedy = 0;
 		}
 		for (int i = 0; i < circles.size(); i++) {
-			if (!(circles[i].coordinates[CIRCLESIDES / 4].y > Floor.y - 2 && circles[i].speedy >= 0 && circles[i].speedy < 3 || circles[i].drag)) {
+			if (!(circles[i].coordinates[CIRCLESIDES / 4].y > RESTITUTION.y - 2 && circles[i].speedy >= 0 && circles[i].speedy < 3 || circles[i].drag)) {
 				circles[i].changespeed(0, GRAVITY, 0);
 			}
 			else {
@@ -561,42 +561,42 @@ public:
 					t = false;
 
 		for (int i = 0; i < squares.size(); i++) {//l'angolo [0] è sempre il più basso
-			if (squares[i].coordinates[0].y > Floor.y - 1 && squares[i].speedy >= 0) {
-				squares[i].move(0, (Floor.y - 1) - squares[i].coordinates[0].y, 0);
-				squares[i].changespeed(0, -squares[i].speedy * FLOOR * 2, 0);
+			if (squares[i].coordinates[0].y > RESTITUTION.y - 1 && squares[i].speedy >= 0) {
+				squares[i].move(0, (RESTITUTION.y - 1) - squares[i].coordinates[0].y, 0);
+				squares[i].changespeed(0, -squares[i].speedy * RESTITUTION * 2, 0);
 			}
 			if (t) {
 				if (squares[i].coordinates[2].y < walls[1].h + 1 && squares[i].speedy <= 0) {
 					squares[i].move(0, (walls[1].h + 1) - squares[i].coordinates[2].y, 0);
-					squares[i].changespeed(0, -squares[i].speedy * FLOOR * 2, 0);
+					squares[i].changespeed(0, -squares[i].speedy * RESTITUTION * 2, 0);
 				}
 				if (squares[i].coordinates[3].x > walls[0].x - 1 && squares[i].speedx >= 0) {
 					squares[i].move(0, (walls[0].x - 1) - squares[i].coordinates[3].x, 0);
-					squares[i].changespeed(-squares[i].speedx * FLOOR * 2, 0, 0);
+					squares[i].changespeed(-squares[i].speedx * RESTITUTION * 2, 0, 0);
 				}
 				if (squares[i].coordinates[1].x < walls[2].w + 1 && squares[i].speedx <= 0) {
 					squares[i].move(0, (walls[2].w + 1) - squares[i].coordinates[1].x, 0);
-					squares[i].changespeed(-squares[i].speedx * FLOOR * 2, 0, 0);
+					squares[i].changespeed(-squares[i].speedx * RESTITUTION * 2, 0, 0);
 				}
 			}
 		}
 		for (int i = 0; i < circles.size(); i++) {//(CIRCLESIDES / 4) è sempre il punto pi� in basso del cerchio
-			if (circles[i].coordinates[CIRCLESIDES / 4].y > Floor.y - 1 && circles[i].speedy >= 0) {
-				circles[i].move(0, (Floor.y - 1) - circles[i].coordinates[CIRCLESIDES / 4].y);
-				circles[i].changespeed(0, -circles[i].speedy * FLOOR * 2, 0);
+			if (circles[i].coordinates[CIRCLESIDES / 4].y > RESTITUTION.y - 1 && circles[i].speedy >= 0) {
+				circles[i].move(0, (RESTITUTION.y - 1) - circles[i].coordinates[CIRCLESIDES / 4].y);
+				circles[i].changespeed(0, -circles[i].speedy * RESTITUTION * 2, 0);
 			}
 			if (t) {
 				if (circles[i].coordinates[CIRCLESIDES * 3 / 4].y < walls[1].h + 1 && circles[i].speedy <= 0) {
 					circles[i].move(0, (walls[1].h + 1) - circles[i].coordinates[CIRCLESIDES * 3 / 4].y);
-					circles[i].changespeed(0, -circles[i].speedy * FLOOR * 2, 0);
+					circles[i].changespeed(0, -circles[i].speedy * RESTITUTION * 2, 0);
 				}
 				if (circles[i].coordinates[0].x > walls[0].x - 1 && circles[i].speedx >= 0) {
 					circles[i].move(0, ((walls[0].x - 1)) - circles[i].coordinates[0].x);
-					circles[i].changespeed(-circles[i].speedx * FLOOR * 2, 0, 0);
+					circles[i].changespeed(-circles[i].speedx * RESTITUTION * 2, 0, 0);
 				}
 				if (circles[i].coordinates[CIRCLESIDES / 2].x < walls[2].w + 1 && circles[i].speedx <= 0) {
 					circles[i].move(0, (walls[2].w + 1) - circles[i].coordinates[CIRCLESIDES / 2].x);
-					circles[i].changespeed(-circles[i].speedx * FLOOR * 2, 0, 0);
+					circles[i].changespeed(-circles[i].speedx * RESTITUTION * 2, 0, 0);
 				}
 			}
 		}
@@ -884,14 +884,11 @@ public:
 	};
 
 	void LClickChecks() {
-		if (sel() && slidercheck() && ui[2].selected)
+		if (sel() && slidercheck() && ui[2].selected && !selectshape())
 			newshape();
 		else {
 			if (ui[1].selected || ui[2].selected) {
 				slidercheck();
-			}
-			if (!ui[2].selected) {
-				selectshape();
 			}
 		}
 	};
@@ -965,7 +962,7 @@ public:
 		}
 	};
 
-	void selectshape() {
+	bool selectshape() {
 		int t;
 		for (int i = 0; i < squares.size(); i++) {
 			t = 0;
@@ -999,7 +996,7 @@ public:
 				}
 				squares[i].selected = true;
 				squares[i].drag = true;
-				return;
+				return 1;
 			}
 		}
 		for (int i = 0; i < circles.size(); i++) {
@@ -1012,9 +1009,10 @@ public:
 				}
 				circles[i].selected = true;
 				circles[i].drag = true;
-				return;
+				return 1;
 			}
 		}
+		return 0;
 	};
 
 	bool slidercheck() {
