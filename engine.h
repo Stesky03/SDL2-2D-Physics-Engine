@@ -869,7 +869,7 @@ public:
 			}
 			area = pow(circles[i].radius/PROPORTION, 2) * M_PI;
 			m = circles[i].mass;
-			D = 0.47 * pow(v, 2) * area * AIRRESISTANCE / pow(60,2) / 4;
+			D = 0.47 * pow(v, 2) * area * AIRRESISTANCE / 60;
 			switch (t) {
 			case 0:
 				angle = atan(vy / vx);
