@@ -11,7 +11,7 @@ using std::string;
 #define GRAVITY (9.81 * PROPORTION / 60)
 #define SQ2 1.4142
 #define CIRCLESIDES 64 //64
-#define OPTIONS 7
+#define OPTIONS 6
 #define OPTIONS2 2
 #define INFOS 4
 #define RESTITUTION 0.80 //0.80
@@ -155,13 +155,14 @@ public:
 class Slider
 {
 public:
-	SDL_Rect sl, bar, number;
+	SDL_Rect sl, bar, number, tag;
 	float vMin, vMax;
 
 	bool selected;
 	float s, value;
 
 	SDL_Texture* numberT;
+	SDL_Texture* tagT;
 	
 	void start(int UISIZE) {
 		sl.h = UISIZE;
@@ -199,7 +200,7 @@ public:
 	//funzionamento
 	bool Running;
 	int windowx, windowy, frame;
-	int UISIZE, textwidthX;
+	int UISIZE, textwidthX, fontSize;
 
 	//rendering
 	SDL_Window* Window;
@@ -224,7 +225,8 @@ public:
 	string tempstring;
 	char tempcha[20];
 	string infotags[INFOS]{"mass", "speed - x", "speed - y", "kinetic energy"};
-	string uitags[OPTIONS]{ "settings", "sliders", "new", "gravity", "walls", "air", "trash" };
+	string uitags[OPTIONS]{ "sliders", "new", "gravity", "walls", "air", "trash" };
+	string slidertags[2]{ "diametro:","densita':" };
 
 	//input
 	bool lclick, rclick;
@@ -236,9 +238,8 @@ public:
 	~Game() {}
 
 
-	bool init(const char* title, int xpos, int ypos, int width, int height, int flags)
+	bool init(const char* title, int xpos, int ypos, int width, int height, int flags)//prepara SDL
 	{
-		//prepara SDL
 		if (SDL_Init(SDL_INIT_EVERYTHING) == 0)
 		{
 			Window = SDL_CreateWindow(title, xpos, ypos, width, height, flags);
@@ -276,8 +277,7 @@ public:
 		return true;
 	};
 
-	void init2() {
-		//prepara il resto
+	void init2() {//prepara il resto
 		startui();
 		frame = 0;
 		for (int i = 0; i < MOUSEFRAMES; i++) {
@@ -286,9 +286,10 @@ public:
 		}
 	};
 
-	void startui() {
+	void startui() {//inizializza tutti gli elementi statici
 		UISIZE = windowx / 38;
-		gFont = TTF_OpenFont("assets/FreeSans.ttf", 28);
+		fontSize = UISIZE / 10 * 4;
+		gFont = TTF_OpenFont("assets/FreeSans.ttf", fontSize);
 		startbuttons();
 		startsliders();
 		startinfo();
@@ -296,7 +297,7 @@ public:
 		startfloorandwalls();
 	};
 
-	void startbuttons() {
+	void startbuttons() {//inizializza i bottoni (in alto a dx)
 		Tasto t;
 		t.button.x = windowx - UISIZE * 1.5;;
 		t.button.y = UISIZE * 0.5;
@@ -320,7 +321,7 @@ public:
 		}
 	};
 
-	void startsliders() {
+	void startsliders() {//inizializza gli sliders per cambiare dimensioni e densità delle figure
 		Slider t;
 
 		for (int i = 0; i < 2; i++) {
@@ -338,6 +339,7 @@ public:
 			sliders[i].bar.x = windowx - UISIZE * 0.5 - sliders[i].bar.w;
 			sliders[i].sl.x = sliders[i].bar.x - sliders[i].sl.w / 2;
 			sliders[i].number.x = sliders[i].sl.x;
+			sliders[i].tag.x = sliders[i].bar.x;
 			if (i == 1)
 				tempstring = std::to_string(float(sliders[i].value) / 10);
 			else
@@ -361,7 +363,7 @@ public:
 		slidertriangle[1] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
 	};
 
-	void startinfo() {
+	void startinfo() {//inizializza tutte le scritte
 		Info t;
 		for (int i = 0; i < INFOS; i++) {
 			infofields.push_back(t);
@@ -379,21 +381,19 @@ public:
 		}
 	};
 
-	void uitextures() {
-		tempsurface = SDL_LoadBMP("assets/settings.bmp");
-		ui1[0]= SDL_CreateTextureFromSurface(Renderer, tempsurface);
+	void uitextures() {//inizializza tutte le texture (bottoni e cursori degli sliders)
 		tempsurface = SDL_LoadBMP("assets/sliders.bmp");
-		ui1[1] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
+		ui1[0] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
 		tempsurface = SDL_LoadBMP("assets/new.bmp");
-		ui1[2] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
+		ui1[1] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
 		tempsurface = SDL_LoadBMP("assets/gravity.bmp");
-		ui1[3] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
+		ui1[2] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
 		tempsurface = SDL_LoadBMP("assets/walls.bmp");
-		ui1[4] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
+		ui1[3] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
 		tempsurface = SDL_LoadBMP("assets/air.bmp");
-		ui1[5] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
+		ui1[4] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
 		tempsurface = SDL_LoadBMP("assets/trash.bmp");
-		ui1[6] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
+		ui1[5] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
 		tempsurface = SDL_LoadBMP("assets/square.bmp");
 		ui2[0] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
 		tempsurface = SDL_LoadBMP("assets/circle.bmp");
@@ -401,7 +401,7 @@ public:
 		SDL_FreeSurface(tempsurface);
 	};
 
-	void startfloorandwalls() {
+	void startfloorandwalls() {//inizializza pavimento, muri(walls[0] & walls[2]) e soffitto(walls[1])
 		Floor.h = 20;
 		Floor.w = windowx;
 		Floor.x = 0;
@@ -415,8 +415,7 @@ public:
 		walls[1].w = windowx;
 	};
 
-	void render() {
-		//ripulisce lo schermo e disegna
+	void render() {//ripulisce lo schermo e disegna il frame corrente
 		SDL_SetRenderDrawColor(Renderer, 0, 0, 0, 255);
 		SDL_RenderClear(Renderer);
 		rendershapes();
@@ -430,38 +429,38 @@ public:
 		rendertextures();
 	};
 
-	void renderuiunselected() {
+	void renderuiunselected() {//rendering bottoni non cliccati
 		SDL_SetRenderDrawColor(Renderer, 150, 150, 150, 255);
 		for (int i = 0; i < OPTIONS; i++)
 			if (!ui[i].selected)
 				SDL_RenderFillRect(Renderer, &ui[i].button);
-		if (ui[2].selected)
+		if (ui[1].selected)
 			for (int i = 0; i < OPTIONS2; i++)
 				if (!uishapes[i].selected)
 					SDL_RenderFillRect(Renderer, &uishapes[i].button);
-		if (ui[1].selected || ui[2].selected)
+		if (ui[0].selected || ui[1].selected)
 			for (int i = 0; i < sliders.size(); i++) {
 				SDL_RenderFillRect(Renderer, &sliders[i].bar);
 			}
 	};
 
-	void renderuiselected() {
+	void renderuiselected() {//rendering bottoni cliccati
 		SDL_SetRenderDrawColor(Renderer, 80, 80, 80, 255);
 		for (int i = 0; i < OPTIONS; i++)
 			if (ui[i].selected)
 				SDL_RenderFillRect(Renderer, &ui[i].button);
-		if (ui[2].selected)
+		if (ui[1].selected)
 			for (int i = 0; i < OPTIONS2; i++)
 				if (uishapes[i].selected)
 					SDL_RenderFillRect(Renderer, &uishapes[i].button);
 	};
 
-	void rendertextures() {
+	void rendertextures() {//rendering texture
 		for (int i = 0; i < OPTIONS; i++)
 			SDL_RenderCopy(Renderer, ui1[i], NULL, &ui[i].button);
 		for (int i = 0; i < OPTIONS2; i++)
 			SDL_RenderCopy(Renderer, ui2[i], NULL, &uishapes[i].button);
-		if (ui[1].selected || ui[2].selected)
+		if (ui[0].selected || ui[1].selected)
 			for (int i = 0; i < sliders.size(); i++) {
 				if(sliders[i].selected)
 					SDL_RenderCopy(Renderer, slidertriangle[1], NULL, &sliders[i].sl);
@@ -469,7 +468,7 @@ public:
 					SDL_RenderCopy(Renderer, slidertriangle[0], NULL, &sliders[i].sl);
 				SDL_RenderCopy(Renderer, sliders[i].numberT, NULL, &sliders[i].number);
 			}
-		if (ui[1].selected) {
+		if (ui[0].selected) {
 			for (int i = 0; i < INFOS; i++) {
 				SDL_QueryTexture(infofields[i].Texture[1], NULL, NULL, &textwidthX, NULL);
 					infofields[i].field[1].w = textwidthX;
@@ -479,7 +478,7 @@ public:
 		}
 	};
 
-	void rendershapes() {
+	void rendershapes() {//rendering di muri e figure
 		SDL_SetRenderDrawColor(Renderer, 255, 255, 255, 255);
 		SDL_RenderFillRect(Renderer, &Floor);
 		renderwalls();
@@ -487,7 +486,7 @@ public:
 		rendercircles();
 	};
 	
-	void renderwalls() {
+	void renderwalls() {//rendering di muri
 		for (int i = 0; i < OPTIONS; i++) {
 			if(ui[i].selected)
 				if(ui[i].tag=="walls")
@@ -495,19 +494,19 @@ public:
 		}
 	};
 
-	void rendersquares() {
+	void rendersquares() {//rendering di quadrati
 		for (int i = 0; i < squares.size(); i++)
 			for (int j = 0; j < 4; j++) 
 				SDL_RenderDrawLineF(Renderer, squares[i].coordinates[j].x, squares[i].coordinates[j].y, squares[i].coordinates[(j + 1) % 4].x, squares[i].coordinates[(j + 1) % 4].y);
 	};
 
-	void rendercircles() {
+	void rendercircles() {//rendering di cerchi
 		for (int i = 0; i < circles.size(); i++)
 			for (int j = 0; j < CIRCLESIDES; j++)
 				SDL_RenderDrawLineF(Renderer, circles[i].coordinates[j].x, circles[i].coordinates[j].y, circles[i].coordinates[(j + 1) % CIRCLESIDES].x, circles[i].coordinates[(j + 1) % CIRCLESIDES].y);
 	};
 
-	void update() {
+	void update() {//da qui viene chiamata tutta la logica
 		getMouseState();
 		gravity();
 		checkBorders();
@@ -521,7 +520,7 @@ public:
 		frame++;
 	};
 
-	void getMouseState() {
+	void getMouseState() {//prende coordinate x e y del mouse
 		int t;
 		for (int i = MOUSEFRAMES - 1; i > 0; i--) {
 			mousexdata[i] = mousexdata[i - 1];
@@ -532,7 +531,7 @@ public:
 		SDL_GetMouseState(&mousex, &mousey);
 	};
 
-	void gravity() {
+	void gravity() {//applica la gravità se attiva
 		for (int i = 0; i < OPTIONS; i++) {
 			if (ui[i].tag == "gravity")
 				if (ui[i].selected)
@@ -555,11 +554,15 @@ public:
 
 	};
 
-	void checkBorders() {
+	void checkBorders() {//controllo collisioni figure - muri
 		bool t;
 		for (int i = 0; i < OPTIONS; i++)
-			if (ui[i].selected && ui[i].tag == "walls")
+			if (ui[i].selected && ui[i].tag == "walls") {
 				t = true;
+				break;
+			}
+			else
+				t = false;
 
 		for (int i = 0; i < squares.size(); i++) {//l'angolo [0] è sempre il più basso
 			if (squares[i].coordinates[0].y > Floor.y - 1 && squares[i].speedy >= 0) {
@@ -620,7 +623,7 @@ public:
 			circles[i].update();
 	};
 
-	void clearCheck() {
+	void clearCheck() {//tasto cestino: se viene cliccato cancella tutto
 		for(int i=0;i<OPTIONS;i++)
 			if (ui[i].tag == "trash" && ui[i].selected) {
 				squares.clear();
@@ -629,7 +632,7 @@ public:
 			}
 	};
 
-	void sliderUpdate() {
+	void sliderUpdate() {//aggiorna posizione e valore dello slider selezionato e spostato
 		for (int i = 0; i < sliders.size(); i++) {
 			if (lclick && sliders[i].selected) {
 				if (mousex + sliders[i].s >= sliders[i].bar.x - sliders[i].sl.w / 2 && mousex + sliders[i].s <= sliders[i].bar.x + sliders[i].bar.w - sliders[i].sl.w / 2) {
@@ -641,7 +644,7 @@ public:
 					sliders[i].sl.x = sliders[i].bar.x + sliders[i].bar.w - sliders[i].sl.w / 2;
 				
 				sliders[i].value = (sliders[i].sl.x - (sliders[i].bar.x - sliders[i].sl.w / 2)) * ((sliders[i].vMax - sliders[i].vMin) / sliders[i].bar.w) + sliders[i].vMin;
-				sliders[i].number.x = sliders[i].sl.x;
+				sliders[i].number.x = sliders[i].sl.x + sliders[i].sl.w/2;
 				if(i==1)
 					tempstring = std::to_string(float(int(sliders[i].value))/10);
 				else
@@ -658,22 +661,24 @@ public:
 
 				textSurface = TTF_RenderText_Solid(gFont, tempcha, white);
 				sliders[i].numberT = SDL_CreateTextureFromSurface(Renderer, textSurface);
+				SDL_QueryTexture(sliders[i].numberT, NULL, NULL, &sliders[i].number.w, &sliders[i].number.h);
+				sliders[i].number.x -= sliders[i].number.w / 2;
 			}
 			else
 				sliders[i].selected = false;
 		}
 	};
 
-	void info() {
-		if (ui[1].selected) {
+	void info() {//cambiamento dei valori controllati dagli slider
+		if (ui[0].selected) {
 			for (int i = 0; i < squares.size(); i++) {
 				if (squares[i].selected) {
 					if (sliders[0].selected) {
-						squares[i].changemass(squares[i].mass / pow(squares[i].lato/PROPORTION, 3) * pow(sliders[0].value/PROPORTION, 3));
+						squares[i].changemass(squares[i].mass * pow(squares[i].lato/PROPORTION, 3) * pow(sliders[0].value/PROPORTION, 3));
 						squares[i].resize(sliders[0].value);
 					}
 					else if (sliders[1].selected) {
-						squares[i].changemass(sliders[1].value / 10 * pow(squares[i].lato / PROPORTION, 3));
+						squares[i].changemass(sliders[1].value * 100 * pow(squares[i].lato / PROPORTION, 3));
 					}
 					for(int j=0;j<4;j++)
 						produceInfoText(i, j, true);
@@ -686,7 +691,7 @@ public:
 						circles[i].resize(sliders[0].value / 2);
 					}
 					else if (sliders[1].selected) {
-						circles[i].changemass(sliders[1].value / 10 * pow(circles[i].radius / PROPORTION, 3) * 4 / 3 * M_PI);
+						circles[i].changemass(sliders[1].value * 100 * pow(circles[i].radius / PROPORTION, 3) * 4 / 3 * M_PI);
 					}
 					for (int j = 0; j < 4; j++)
 						produceInfoText(i, j, false);
@@ -695,7 +700,7 @@ public:
 		}
 	};
 
-	void produceInfoText(int i, int j, bool rect) {
+	void produceInfoText(int i, int j, bool rect) {//aggiorna le scritte 
 		if (j == 0) {
 			if (rect)
 				tempstring = std::to_string(squares[i].mass);
@@ -724,16 +729,21 @@ public:
 				tempstring = std::to_string(circles[i].K);
 			tempstring += " J";
 		}
+		bool intero = false;
+		for (int k = 0; k < tempstring.size(); k++) {
+			if (tempstring[k] == '.') {
+				tempstring.erase(k + 3, 4);
+				break;
+			}
+		}
 		for (int j = 0; j < tempstring.size(); j++)
 			tempcha[j] = tempstring[j];
-		for (int j = 0; j < tempstring.size(); j++)
-			if (tempcha[j] == '.')
-				tempcha[j + CIFRE + 1] = '\0';
+		tempcha[tempstring.size()] = '\0';
 		textSurface = TTF_RenderText_Solid(gFont, tempcha, white);
 		infofields[j].Texture[1] = SDL_CreateTextureFromSurface(Renderer, textSurface);
 	};
 
-	void dragShapes() {
+	void dragShapes() {//drag and drop
 		int x, y;
 		//squares
 		for (int i = 0; i < circles.size(); i++) {
@@ -763,7 +773,7 @@ public:
 		checkCC();
 	};
 
-	void checkCC() {
+	void checkCC() {//collisioni e urti cerchio - cerchio
 		float x1, x2;
 		float y1, y2;
 		float v1x, v2x;
@@ -837,7 +847,7 @@ public:
 		}
 	};
 
-	void airResistance() {
+	void airResistance() { //applicazione resistenza dell'aria
 		for (int i = 0; i < ui.size(); i++) {
 			if (ui[i].tag == "air")
 				if (ui[i].selected)
@@ -912,8 +922,7 @@ public:
 	};
 
 	
-	void handleEvents() {
-		//registra i tasti cliccati
+	void handleEvents() {//registra i tasti cliccati
 		SDL_Event event;
 		if (SDL_PollEvent(&event))
 		{
@@ -959,12 +968,12 @@ public:
 		}
 	};
 
-	void LClickChecks() {
+	void LClickChecks() {//se viene cliccato il tasto sinistro del mouse vengono chiamate le seguenti funzioni
 		if (!selectui())
 			return;
 		if (selectshape())
 			return;
-		if (ui[2].selected && slidercheck())
+		if (ui[1].selected && slidercheck())
 			newshape();
 		else {
 			if (ui[1].selected || ui[0].selected) {
@@ -973,14 +982,14 @@ public:
 		}
 	};
 
-	bool selectui() {
+	bool selectui() {//se il mouse viene cliccato quando è sopra un bottone chiama la selezione del bottone
 		if (mousey >= ui[0].button.y && mousey <= ui[0].button.y + UISIZE)
 			for (int i = 0; i < OPTIONS; i++)
 				if (mousex >= ui[i].button.x && mousex <= ui[i].button.x + UISIZE) {
 					selection(0,i);
 					return false;
 				}
-		if (ui[2].selected) {
+		if (ui[1].selected) {
 			if (mousey >= uishapes[0].button.y && mousey <= uishapes[0].button.y + UISIZE)
 				for (int i = 0; i < OPTIONS2; i++)
 					if (mousex >= uishapes[i].button.x && mousex <= uishapes[i].button.x + UISIZE) {
@@ -990,7 +999,7 @@ public:
 		}
 		return true;
 	};
-	void selection(int a, int b) {
+	void selection(int a, int b) {//selezione del bottone
 		if (a == -1) {
 			for (int i = 0; i < OPTIONS; i++)
 				ui[i].selected = false;
@@ -1016,7 +1025,7 @@ public:
 			return;
 		}
 
-		if (a == 1) {
+		if (a == 1) {//uguale per il secondo menù
 			if (uishapes[b].selected) {
 				uishapes[b].selected = false;
 				return;
@@ -1029,10 +1038,10 @@ public:
 
 	};
 
-	void newshape() {
+	void newshape() {//aggiunge una figura e seleziona quella appena creata
 		if (uishapes[0].selected) {
 			Square t;
-			t.S(mousex, mousey, sliders[0].value, sliders[1].value / 10 * pow(sliders[0].value / PROPORTION, 3));
+			t.S(mousex, mousey, sliders[0].value, sliders[1].value * 100 * pow(sliders[0].value / PROPORTION, 3));
 			for (int i = 0; i < circles.size(); i++)
 				circles[i].selected = false;
 			for (int i = 0; i < squares.size(); i++)
@@ -1042,7 +1051,7 @@ public:
 		}
 		else if (uishapes[1].selected) {
 			Circle t;	
-			t.C(mousex, mousey, sliders[0].value / 2, sliders[1].value / 10 * pow((sliders[0].value/2) / PROPORTION, 3) * 4 / 3 * M_PI);
+			t.C(mousex, mousey, sliders[0].value / 2, sliders[1].value * 100 * pow((sliders[0].value/2) / PROPORTION, 3) * 4 / 3 * M_PI);
 			for (int i = 0; i < circles.size(); i++)
 				circles[i].selected = false;
 			for (int i = 0; i < squares.size(); i++)
@@ -1052,7 +1061,7 @@ public:
 		}
 	};
 
-	bool selectshape() {
+	bool selectshape() {//seleziona la figura su cui è il cursore se viene cliccato il tasto del mouse
 		int t;
 		for (int i = 0; i < squares.size(); i++) {
 			t = 0;
@@ -1105,7 +1114,7 @@ public:
 		return 0;
 	};
 
-	bool slidercheck() {
+	bool slidercheck() {//se il mouse viene cliccato quando il cursore è sopra uno slider, questo viene selezionato
 		for (int i = 0; i < sliders.size(); i++) {
 			if (mousex >= sliders[i].sl.x && mousex <= sliders[i].sl.x + sliders[i].sl.w && mousey >= sliders[i].sl.y && mousey <= sliders[i].sl.y + sliders[i].sl.h) {
 				sliders[i].selected = true;
@@ -1116,8 +1125,7 @@ public:
 		return true;
 	}
 
-	void clean() {
-		//chiude tutto
+	void clean() {//chiude tutto
 		std::cout << "cleaning\n";
 		SDL_DestroyWindow(Window);
 		SDL_DestroyRenderer(Renderer);
