@@ -36,55 +36,6 @@ class Coordinatesclass{
 public:
 	float x, y;
 };
-//quadrati
-class Square {
-public:
-	float mass, speedx, speedy, speedr, x, y, y1, r, lato, K, Xprec, Yprec, speedxF, speedyF;
-	bool selected, drag;
-	Coordinatesclass coordinates[4];
-	void S(float X, float Y, float s, float w) {
-		x = X;
-		y = Y;
-		lato = s;
-		mass = w;
-		create();
-
-		speedx = 0;
-		speedy = 0;
-		speedr = 0;
-		Xprec = Yprec = 0;
-		r = 0;
-		selected = drag = false;
-	};
-	void create() {
-		float r1 = 45 + r;
-		for (int i = 0; i < 4; i++) {
-			coordinates[i].x = x + (lato * SQ2 / 2 * cos(r1 * M_PI / 180));
-			coordinates[i].y = y + (lato * SQ2 / 2 * sin(r1 * M_PI / 180));
-			r1 += 90;
-		}
-	};
-	void resize(float s) { lato = s; };
-	void changemass(float w) { mass = w; };
-	void changespeed(float X, float Y, float R) { speedx += X; speedy += Y; speedr += R; };
-	void move(float X, float Y, float R) { x += X; y += Y; r += R; };
-	void update() {
-		x += speedx/60;
-		y += speedy/60;
-		r += speedr/60;
-		speedxF = (x - Xprec);
-		speedyF = (Yprec - y);
-		Xprec = x;
-		Yprec = y;
-		while (r >= 90)
-			r -= 90;
-		calcK();
-		create();
-	};
-	void calcK() {
-		K = mass * (pow(speedyF, 2) + pow(speedxF, 2)) / 2;
-	};
-};
 
 //cerchi
 class Circle{
@@ -207,7 +158,6 @@ public:
 	SDL_Renderer* Renderer;
 
 	//cose
-	vector <Square> squares;
 	vector <Circle> circles;
 	SDL_Rect Floor;
 	SDL_Rect walls[3];
@@ -224,9 +174,9 @@ public:
 	SDL_Surface* textSurface;
 	string tempstring;
 	char tempcha[20];
-	string infotags[INFOS]{"mass", "speed - x", "speed - y", "kinetic energy"};
+	string infotags[INFOS]{"Massa", "Velocita' - x", "Velocita' - y", "Energia cinetica"};
 	string uitags[OPTIONS]{ "sliders", "new", "gravity", "walls", "air", "trash" };
-	string slidertags[2]{ "diametro:","densita':" };
+	string slidertags[2]{ "Diametro","Densita'" };
 
 	//input
 	bool lclick, rclick;
@@ -334,12 +284,13 @@ public:
 		sliders[1].vMax = MAXMASS;
 		for (int i = 0; i < sliders.size(); i++) {
 			sliders[i].value = sliders[i].vMin;
-			sliders[i].bar.y = sliders[i].sl.y = UISIZE * 4 + UISIZE * 2.2 * i;
+			sliders[i].bar.y = sliders[i].sl.y = UISIZE * 3.3 + UISIZE * 2.5 * i;
 			sliders[i].number.y = sliders[i].sl.y + sliders[i].sl.h;
 			sliders[i].bar.x = windowx - UISIZE * 0.5 - sliders[i].bar.w;
 			sliders[i].sl.x = sliders[i].bar.x - sliders[i].sl.w / 2;
 			sliders[i].number.x = sliders[i].sl.x;
-			sliders[i].tag.x = sliders[i].bar.x;
+			sliders[i].tag.x = sliders[i].bar.x + UISIZE / 8;
+
 			if (i == 1)
 				tempstring = std::to_string(float(sliders[i].value) / 10);
 			else
@@ -353,9 +304,15 @@ public:
 				if (tempcha[j] == '.')
 					tempcha[j + 2] = '\0';
 			}
-
 			textSurface = TTF_RenderText_Solid(gFont, tempcha, white);
 			sliders[i].numberT = SDL_CreateTextureFromSurface(Renderer, textSurface);
+
+			for (int j = 0; j < tempstring.size(); j++)
+				tempcha[j] = slidertags[i][j];
+			textSurface = TTF_RenderText_Solid(gFont, tempcha, white);
+			sliders[i].tagT = SDL_CreateTextureFromSurface(Renderer, textSurface);
+			SDL_QueryTexture(sliders[i].tagT, NULL, NULL, &sliders[i].tag.w, &sliders[i].tag.h);
+			sliders[i].tag.y = sliders[i].bar.y - sliders[i].tag.h - UISIZE / 8;
 		}
 		tempsurface = SDL_LoadBMP("assets/tri1.bmp");
 		slidertriangle[0] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
@@ -394,10 +351,6 @@ public:
 		ui1[4] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
 		tempsurface = SDL_LoadBMP("assets/trash.bmp");
 		ui1[5] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
-		tempsurface = SDL_LoadBMP("assets/square.bmp");
-		ui2[0] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
-		tempsurface = SDL_LoadBMP("assets/circle.bmp");
-		ui2[1] = SDL_CreateTextureFromSurface(Renderer, tempsurface);
 		SDL_FreeSurface(tempsurface);
 	};
 
@@ -434,10 +387,6 @@ public:
 		for (int i = 0; i < OPTIONS; i++)
 			if (!ui[i].selected)
 				SDL_RenderFillRect(Renderer, &ui[i].button);
-		if (ui[1].selected)
-			for (int i = 0; i < OPTIONS2; i++)
-				if (!uishapes[i].selected)
-					SDL_RenderFillRect(Renderer, &uishapes[i].button);
 		if (ui[0].selected || ui[1].selected)
 			for (int i = 0; i < sliders.size(); i++) {
 				SDL_RenderFillRect(Renderer, &sliders[i].bar);
@@ -449,17 +398,11 @@ public:
 		for (int i = 0; i < OPTIONS; i++)
 			if (ui[i].selected)
 				SDL_RenderFillRect(Renderer, &ui[i].button);
-		if (ui[1].selected)
-			for (int i = 0; i < OPTIONS2; i++)
-				if (uishapes[i].selected)
-					SDL_RenderFillRect(Renderer, &uishapes[i].button);
 	};
 
 	void rendertextures() {//rendering texture
 		for (int i = 0; i < OPTIONS; i++)
 			SDL_RenderCopy(Renderer, ui1[i], NULL, &ui[i].button);
-		for (int i = 0; i < OPTIONS2; i++)
-			SDL_RenderCopy(Renderer, ui2[i], NULL, &uishapes[i].button);
 		if (ui[0].selected || ui[1].selected)
 			for (int i = 0; i < sliders.size(); i++) {
 				if(sliders[i].selected)
@@ -467,6 +410,7 @@ public:
 				else
 					SDL_RenderCopy(Renderer, slidertriangle[0], NULL, &sliders[i].sl);
 				SDL_RenderCopy(Renderer, sliders[i].numberT, NULL, &sliders[i].number);
+				SDL_RenderCopy(Renderer, sliders[i].tagT, NULL, &sliders[i].tag);
 			}
 		if (ui[0].selected) {
 			for (int i = 0; i < INFOS; i++) {
@@ -482,7 +426,6 @@ public:
 		SDL_SetRenderDrawColor(Renderer, 255, 255, 255, 255);
 		SDL_RenderFillRect(Renderer, &Floor);
 		renderwalls();
-		rendersquares();
 		rendercircles();
 	};
 	
@@ -492,12 +435,6 @@ public:
 				if(ui[i].tag=="walls")
 					SDL_RenderFillRects(Renderer, walls, 3);
 		}
-	};
-
-	void rendersquares() {//rendering di quadrati
-		for (int i = 0; i < squares.size(); i++)
-			for (int j = 0; j < 4; j++) 
-				SDL_RenderDrawLineF(Renderer, squares[i].coordinates[j].x, squares[i].coordinates[j].y, squares[i].coordinates[(j + 1) % 4].x, squares[i].coordinates[(j + 1) % 4].y);
 	};
 
 	void rendercircles() {//rendering di cerchi
@@ -510,7 +447,7 @@ public:
 		getMouseState();
 		gravity();
 		checkBorders();
-		updateShapes();
+		updateCircles();
 		clearCheck();
 		sliderUpdate();
 		info();
@@ -537,12 +474,7 @@ public:
 				if (ui[i].selected)
 					return;
 		}
-		for (int i = 0; i < squares.size(); i++) {
-			if (!(squares[i].coordinates[0].y > Floor.y - 2 && squares[i].speedy >= 0 && squares[i].speedy < 3))//questo if() serve a non far rimbalzare oggetti che sono fermi a terra
-				squares[i].changespeed(0, GRAVITY, 0);
-			else
-				squares[i].speedy = 0;
-		}
+
 		for (int i = 0; i < circles.size(); i++) {
 			if (!(circles[i].coordinates[CIRCLESIDES / 4].y > Floor.y - 2 && circles[i].speedy >= 0 && circles[i].speedy < 3 || circles[i].drag)) {
 				circles[i].changespeed(0, GRAVITY, 0);
@@ -564,41 +496,37 @@ public:
 			else
 				t = false;
 
-		for (int i = 0; i < squares.size(); i++) {//l'angolo [0] è sempre il più basso
-			if (squares[i].coordinates[0].y > Floor.y - 1 && squares[i].speedy >= 0) {
-				squares[i].move(0, (Floor.y - 1) - squares[i].coordinates[0].y, 0);
-				squares[i].changespeed(0, -squares[i].speedy * RESTITUTION * 2, 0);
-			}
-			if (t) {
-				if (squares[i].coordinates[2].y < walls[1].h + 1 && squares[i].speedy <= 0) {
-					squares[i].move(0, (walls[1].h + 1) - squares[i].coordinates[2].y, 0);
-					squares[i].changespeed(0, -squares[i].speedy * RESTITUTION * 2, 0);
-				}
-				if (squares[i].coordinates[3].x > walls[0].x - 1 && squares[i].speedx >= 0) {
-					squares[i].move(0, (walls[0].x - 1) - squares[i].coordinates[3].x, 0);
-					squares[i].changespeed(-squares[i].speedx * RESTITUTION * 2, 0, 0);
-				}
-				if (squares[i].coordinates[1].x < walls[2].w + 1 && squares[i].speedx <= 0) {
-					squares[i].move(0, (walls[2].w + 1) - squares[i].coordinates[1].x, 0);
-					squares[i].changespeed(-squares[i].speedx * RESTITUTION * 2, 0, 0);
-				}
-			}
-		}
 		for (int i = 0; i < circles.size(); i++) {//(CIRCLESIDES / 4) è sempre il punto pi� in basso del cerchio
 			if (circles[i].coordinates[CIRCLESIDES / 4].y > Floor.y - 1 && circles[i].speedy >= 0) {
+				if (circles[i].coordinates[CIRCLESIDES / 4].y > Floor.y + 600) {
+					circles.erase(circles.begin() + i);
+					break;
+				}
 				circles[i].move(0, (Floor.y - 1) - circles[i].coordinates[CIRCLESIDES / 4].y);
 				circles[i].changespeed(0, -circles[i].speedy * RESTITUTION * 2, 0);
 			}
 			if (t) {
 				if (circles[i].coordinates[CIRCLESIDES * 3 / 4].y < walls[1].h + 1 && circles[i].speedy <= 0) {
+					if (circles[i].coordinates[CIRCLESIDES * 3 / 4].y < walls[1].h - 600) {
+						circles.erase(circles.begin() + i);
+						break;
+					}
 					circles[i].move(0, (walls[1].h + 1) - circles[i].coordinates[CIRCLESIDES * 3 / 4].y);
 					circles[i].changespeed(0, -circles[i].speedy * RESTITUTION * 2, 0);
 				}
 				if (circles[i].coordinates[0].x > walls[0].x - 1 && circles[i].speedx >= 0) {
+					if (circles[i].coordinates[0].x > walls[0].x + 600) {
+						circles.erase(circles.begin() + i);
+						break;
+					}
 					circles[i].move((walls[0].x - 1) - circles[i].coordinates[0].x, 0);
 					circles[i].changespeed(-circles[i].speedx * RESTITUTION * 2, 0, 0);
 				}
 				if (circles[i].coordinates[CIRCLESIDES / 2].x < walls[2].w + 1 && circles[i].speedx <= 0) {
+					if (circles[i].coordinates[CIRCLESIDES / 2].x < walls[2].w - 600) {
+						circles.erase(circles.begin() + i);
+						break;
+					}
 					circles[i].move((walls[2].w + 1) - circles[i].coordinates[CIRCLESIDES / 2].x, 0);
 					circles[i].changespeed(-circles[i].speedx * RESTITUTION * 2, 0, 0);
 				}
@@ -606,16 +534,6 @@ public:
 		}
 
 
-	};
-
-	void updateShapes() {
-		updateSquares();
-		updateCircles();
-	};
-
-	void updateSquares() {
-		for (int i = 0; i < squares.size(); i++)
-			squares[i].update();
 	};
 
 	void updateCircles() {
@@ -626,7 +544,6 @@ public:
 	void clearCheck() {//tasto cestino: se viene cliccato cancella tutto
 		for(int i=0;i<OPTIONS;i++)
 			if (ui[i].tag == "trash" && ui[i].selected) {
-				squares.clear();
 				circles.clear();
 				selection(-1,0);
 			}
@@ -671,19 +588,6 @@ public:
 
 	void info() {//cambiamento dei valori controllati dagli slider
 		if (ui[0].selected) {
-			for (int i = 0; i < squares.size(); i++) {
-				if (squares[i].selected) {
-					if (sliders[0].selected) {
-						squares[i].changemass(squares[i].mass * pow(squares[i].lato/PROPORTION, 3) * pow(sliders[0].value/PROPORTION, 3));
-						squares[i].resize(sliders[0].value);
-					}
-					else if (sliders[1].selected) {
-						squares[i].changemass(sliders[1].value * 100 * pow(squares[i].lato / PROPORTION, 3));
-					}
-					for(int j=0;j<4;j++)
-						produceInfoText(i, j, true);
-				}
-			}
 			for (int i = 0; i < circles.size(); i++) {
 				if (circles[i].selected) {
 					if (sliders[0].selected) {
@@ -694,39 +598,27 @@ public:
 						circles[i].changemass(sliders[1].value * 100 * pow(circles[i].radius / PROPORTION, 3) * 4 / 3 * M_PI);
 					}
 					for (int j = 0; j < 4; j++)
-						produceInfoText(i, j, false);
+						produceInfoText(i, j);
 				}
 			}
 		}
 	};
 
-	void produceInfoText(int i, int j, bool rect) {//aggiorna le scritte 
+	void produceInfoText(int i, int j) {//aggiorna le scritte 
 		if (j == 0) {
-			if (rect)
-				tempstring = std::to_string(squares[i].mass);
-			else
-				tempstring = std::to_string(circles[i].mass);
+			tempstring = std::to_string(circles[i].mass);
 			tempstring += " kg";
 		}
 		if (j == 1) {
-			if (rect)
-				tempstring = std::to_string(squares[i].speedxF);
-			else
-				tempstring = std::to_string(circles[i].speedxF);
+			tempstring = std::to_string(circles[i].speedxF);
 			tempstring += " m/s";
 		}
 		if (j == 2) {
-			if (rect)
-				tempstring = std::to_string(squares[i].speedyF);
-			else
-				tempstring = std::to_string(circles[i].speedyF);
+			tempstring = std::to_string(circles[i].speedyF);
 			tempstring += " m/s";
 		}
 		if (j == 3) {
-			if (rect)
-				tempstring = std::to_string(squares[i].K);
-			else
-				tempstring = std::to_string(circles[i].K);
+			tempstring = std::to_string(circles[i].K);
 			tempstring += " J";
 		}
 		bool intero = false;
@@ -745,7 +637,6 @@ public:
 
 	void dragShapes() {//drag and drop
 		int x, y;
-		//squares
 		for (int i = 0; i < circles.size(); i++) {
 			if (!circles[i].drag)
 				continue;
@@ -989,22 +880,13 @@ public:
 					selection(0,i);
 					return false;
 				}
-		if (ui[1].selected) {
-			if (mousey >= uishapes[0].button.y && mousey <= uishapes[0].button.y + UISIZE)
-				for (int i = 0; i < OPTIONS2; i++)
-					if (mousex >= uishapes[i].button.x && mousex <= uishapes[i].button.x + UISIZE) {
-						selection(1,i);
-						return false;
-					}
-		}
 		return true;
 	};
+
 	void selection(int a, int b) {//selezione del bottone
 		if (a == -1) {
 			for (int i = 0; i < OPTIONS; i++)
 				ui[i].selected = false;
-			for (int i = 0; i < OPTIONS2; i++)
-				uishapes[i].selected = false;
 		}
 
 		if (a == 0) {
@@ -1024,85 +906,21 @@ public:
 			ui[b].selected = true;
 			return;
 		}
-
-		if (a == 1) {//uguale per il secondo menù
-			if (uishapes[b].selected) {
-				uishapes[b].selected = false;
-				return;
-			}
-			for (int i = 0; i < OPTIONS2; i++)
-				uishapes[i].selected = false;
-			uishapes[b].selected = true;
-			return;
-		}
-
 	};
 
 	void newshape() {//aggiunge una figura e seleziona quella appena creata
-		if (uishapes[0].selected) {
-			Square t;
-			t.S(mousex, mousey, sliders[0].value, sliders[1].value * 100 * pow(sliders[0].value / PROPORTION, 3));
-			for (int i = 0; i < circles.size(); i++)
-				circles[i].selected = false;
-			for (int i = 0; i < squares.size(); i++)
-				squares[i].selected = false;
-			t.selected = true;
-			squares.push_back(t);
-		}
-		else if (uishapes[1].selected) {
-			Circle t;	
-			t.C(mousex, mousey, sliders[0].value / 2, sliders[1].value * 100 * pow((sliders[0].value/2) / PROPORTION, 3) * 4 / 3 * M_PI);
-			for (int i = 0; i < circles.size(); i++)
-				circles[i].selected = false;
-			for (int i = 0; i < squares.size(); i++)
-				squares[i].selected = false;
-			t.selected = true;
-			circles.push_back(t);
-		}
+		Circle t;	
+		t.C(mousex, mousey, sliders[0].value / 2, sliders[1].value * 100 * pow((sliders[0].value/2) / PROPORTION, 3) * 4 / 3 * M_PI);
+		for (int i = 0; i < circles.size(); i++)
+			circles[i].selected = false;
+		t.selected = true;
+		circles.push_back(t);
 	};
 
 	bool selectshape() {//seleziona la figura su cui è il cursore se viene cliccato il tasto del mouse
 		int t;
-		for (int i = 0; i < squares.size(); i++) {
-			t = 0;
-			if (squares[i].r == 0 && abs(mousex - squares[i].x) < squares[i].lato / 2 && abs(mousey - squares[i].y) < squares[i].lato / 2) {
-				t = 2;
-			}
-			else {
-				if (mousey <= squares[i].coordinates[1].y) {
-					if (mousex >= squares[i].coordinates[1].x + (abs(mousey - squares[i].coordinates[1].y) * cotan(squares[i].r * M_PI / 180)))
-						t++;
-				}
-				else if (mousey >= squares[i].coordinates[1].y) {
-					if (mousex >= squares[i].coordinates[1].x + (abs(mousey - squares[i].coordinates[1].y) * tan(squares[i].r * M_PI / 180)))
-						t++;
-				}
-				if (mousey <= squares[i].coordinates[3].y) {
-					if (mousex <= squares[i].coordinates[3].x - (abs(mousey - squares[i].coordinates[3].y) * tan(squares[i].r * M_PI / 180)))
-						t++;
-				}
-				else if (mousey >= squares[i].coordinates[3].y) {
-					if (mousex <= squares[i].coordinates[3].x - (abs(mousey - squares[i].coordinates[3].y) * cotan(squares[i].r * M_PI / 180)))
-						t++;
-				}
-			}
-			if (t == 2) {
-				for (int j = 0; j < squares.size(); j++) {
-					squares[j].selected = false;
-				}
-				for (int j = 0; j < circles.size(); j++) {
-					circles[j].selected = false;
-				}
-				squares[i].selected = true;
-				squares[i].drag = true;
-				return 1;
-			}
-		}
 		for (int i = 0; i < circles.size(); i++) {
 			if (sqrt(pow(mousex - circles[i].x, 2) + pow(mousey - circles[i].y, 2)) < circles[i].radius) {
-				for (int j = 0; j < squares.size(); j++) {
-					squares[j].selected = false;
-				}
 				for (int j = 0; j < circles.size(); j++) {
 					circles[j].selected = false;
 				}
