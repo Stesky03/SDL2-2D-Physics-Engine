@@ -1,8 +1,24 @@
 SDL2-2D-Physics-Engine
 
+INDICE:
+-Informazioni sul programma
+-Istruzioni per la compilazione
+-Istruzioni per l'esecuzione
+-Istruzioni per l'utilizzo
+
+INFORMAZIONI
+
 SDL2-2D-Physics-Engine è un programma open source, scritto in C++ utilizzando la libreria SDL2, rilasciato sotto una licenza MIT.
 
 Questo programma è un motore fisico per simulare la dinamica di cerchi rigidi bidimensionali.
+
+COMPILAZIONE
+
+compilare il file engine.cpp, dando accesso al compilatore alle cartelle contenenti tutti i file di SDL (SDL.h; ...) e di SDL_ttf (SDL_ttf.h, ...) e al file engine.h, inoltre linkare le librerie SDL2.lib; SDL2main.lib; SDL2_ttf.lib;
+
+ESECUZIONE
+
+Aprire il file engine.exe nella stessa cartella i file SDL2.dll; SDL2_ttf.dll;
 
 UTILIZZO
 Dopo l'accensione del programma selezionare uno dei 6 bottoni nell'angolo in alto a destra per selezionare una modalità/operazione.
@@ -29,7 +45,4 @@ I tasti e le loro funzioni sono elencati in seguito da destra a sinistra:
 	
 Per selezionare un cerchio bisogna cliccarlo (qualsiasi sia la modalità selezionata), tenendo premuto il tasto sinistro del mouse su una figura si può spostare, rilasciando il tasto la figura conserverà la velocità che aveva nel momento del rilascio.
 
-Gli urti tra gli oggetti sono elastici, gli urti con il pavimento hanno come costante di restituzione la variabile RESTITUTION.
-
-ISTRUZIONI PER LA COMPILAZIONE:
-compilare il file engine.cpp, dando accesso al compilatore alle cartelle contenenti tutti i file di SDL (SDL.h; ...) e di SDL_ttf (SDL_ttf.h, ...) e al file engine.h, inoltre linkare le librerie SDL2.lib; SDL2main.lib; SDL2_ttf.lib;
+Gli urti tra oggetti sono elastici, gli urti con pavimento e muri hanno come costante di restituzione la variabile RESTITUTION.
