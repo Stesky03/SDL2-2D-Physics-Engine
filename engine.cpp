@@ -10,7 +10,7 @@ int main(int argc, char* argv[])
 {
 	Uint32 frameStart, frameTime;
 	game = new Game();
-	game->init("Engine", 100, 100, WIDTH, HEIGHT, SDL_WINDOW_FULLSCREEN);
+	game->init("Engine", 100, 100, WIDTH, HEIGHT, SDL_WINDOW_FULLSCREEN_DESKTOP);
 	while (game->running())
 	{
 		frameStart = SDL_GetTicks();
