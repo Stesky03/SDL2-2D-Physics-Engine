@@ -18,7 +18,7 @@ compilare il file engine.cpp, dando accesso al compilatore alle cartelle contene
 
 ESECUZIONE
 
-Aprire il file engine.exe nella stessa cartella i file SDL2.dll; SDL2_ttf.dll;
+Aprire il file engine.exe nella stessa cartella dei file SDL2.dll; SDL2_ttf.dll;
 
 UTILIZZO
 Dopo l'accensione del programma selezionare uno dei 6 bottoni nell'angolo in alto a destra per selezionare una modalità/operazione.
