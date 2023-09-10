@@ -1,5 +1,5 @@
-#include "SDL.h"
-#include "SDL_ttf.h"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <iostream> 
 #include <math.h>
 #include <vector>
@@ -815,7 +815,7 @@ public:
 	
 	void handleEvents() {//registra i tasti cliccati
 		SDL_Event event;
-		if (SDL_PollEvent(&event))
+		while (SDL_PollEvent(&event))
 		{
 			switch (event.type)
 			{
